@@ -19,7 +19,8 @@ public class CorsConfig {
                             "http://localhost:5173",
                             "http://localhost:5174",
                             "http://localhost:5175",
-                            "https://*.vercel.app"  // ← Adicione esta linha
+                            "https://*.vercel.app",
+                            "https://autoflex-inventory-system.vercel.app"  // ← URL definitiva
                         )
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
                         .allowedHeaders("*")
