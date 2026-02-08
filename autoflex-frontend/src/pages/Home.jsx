@@ -3,8 +3,8 @@ import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 import { fetchProducts } from "../store/slices/productSlice";
 import { fetchRawMaterials } from "../store/slices/rawMaterialSlice";
-import { Card } from "../components/common/Card";
-import { Loading } from "../components/common/Loading";
+import Card from "../components/common/Card";
+import Loading from "../components/common/Loading";
 import {
   CubeIcon,
   BeakerIcon,

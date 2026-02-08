@@ -1,4 +1,4 @@
-export function Loading({ fullScreen = false }) {
+export default function Loading({ fullScreen = false }) {
   if (fullScreen) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-white bg-opacity-75 z-50">

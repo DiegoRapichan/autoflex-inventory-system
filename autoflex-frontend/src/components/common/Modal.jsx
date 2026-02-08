@@ -2,7 +2,13 @@ import { Fragment } from "react";
 import { Dialog, Transition } from "@headlessui/react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 
-export function Modal({ isOpen, onClose, title, children, size = "md" }) {
+export default function Modal({
+  isOpen,
+  onClose,
+  title,
+  children,
+  size = "md",
+}) {
   const sizes = {
     sm: "max-w-md",
     md: "max-w-2xl",

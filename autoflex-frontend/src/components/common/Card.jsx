@@ -1,4 +1,10 @@
-export function Card({ title, subtitle, children, actions, className }) {
+export default function Card({
+  title,
+  subtitle,
+  children,
+  actions,
+  className,
+}) {
   return (
     <div className={`card ${className || ""}`}>
       {(title || actions) && (

@@ -1,4 +1,4 @@
-export function Badge({ children, variant = "primary" }) {
+export default function Badge({ children, variant = "primary" }) {
   const variants = {
     primary: "badge-primary",
     success: "badge-success",

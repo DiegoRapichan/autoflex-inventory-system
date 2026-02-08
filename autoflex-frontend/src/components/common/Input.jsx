@@ -1,6 +1,12 @@
 import clsx from "clsx";
 
-export function Input({ label, error, className, required = false, ...props }) {
+export default function Input({
+  label,
+  error,
+  className,
+  required = false,
+  ...props
+}) {
   return (
     <div className="mb-4">
       {label && (
