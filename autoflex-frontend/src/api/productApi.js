@@ -1,5 +1,5 @@
 import api from "./axios";
-
+export default api;
 /**
  * API de Produtos
  * Todas as chamadas relacionadas a produtos

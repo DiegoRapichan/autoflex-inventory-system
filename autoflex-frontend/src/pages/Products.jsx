@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -14,8 +15,11 @@ import Card from "../components/common/Card";
 import Loading from "../components/common/Loading";
 import ConfirmDialog from "../components/common/ConfirmDialog";
 import { formatCurrency } from "../utils/formatters";
+import { toast } from "react-toastify";
+import api from "../api/productApi";
 
 export default function Products() {
+  const navigate = useNavigate();
   const dispatch = useDispatch();
   const {
     items: products,
@@ -25,8 +29,7 @@ export default function Products() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [productToDelete, setProductToDelete] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   const [formData, setFormData] = useState({
     code: "",
@@ -34,202 +37,175 @@ export default function Products() {
     value: "",
   });
 
-  const [formErrors, setFormErrors] = useState({});
-
   useEffect(() => {
     dispatch(fetchProducts());
   }, [dispatch]);
 
-  const handleOpenModal = (product = null) => {
-    if (product) {
-      setEditingProduct(product);
-      setFormData({
-        code: product.code,
-        name: product.name,
-        value: product.value,
-      });
-    } else {
-      setEditingProduct(null);
-      setFormData({ code: "", name: "", value: "" });
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      if (editingProduct) {
+        await api.update(editingProduct.id, formData);
+        toast.success("Product updated successfully!");
+      } else {
+        await api.create(formData);
+        toast.success("Product created successfully!");
+      }
+      setIsModalOpen(false);
+      resetForm();
+      dispatch(fetchProducts());
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to save product");
     }
-    setFormErrors({});
+  };
+
+  const handleEdit = (product) => {
+    setEditingProduct(product);
+    setFormData({
+      code: product.code,
+      name: product.name,
+      value: product.value,
+    });
     setIsModalOpen(true);
   };
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setEditingProduct(null);
+  const handleDelete = async () => {
+    try {
+      await dispatch(deleteProduct(deleteConfirm.id)).unwrap();
+      toast.success("Product deleted successfully!");
+      setDeleteConfirm(null);
+    } catch (error) {
+      toast.error("Failed to delete product");
+    }
+  };
+
+  const resetForm = () => {
     setFormData({ code: "", name: "", value: "" });
-    setFormErrors({});
+    setEditingProduct(null);
   };
 
-  const validateForm = () => {
-    const errors = {};
-
-    if (!formData.code.trim()) {
-      errors.code = "Code is required";
-    }
-
-    if (!formData.name.trim()) {
-      errors.name = "Name is required";
-    }
-
-    if (!formData.value || formData.value <= 0) {
-      errors.value = "Value must be greater than 0";
-    }
-
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    resetForm();
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!validateForm()) return;
-
-    const productData = {
-      code: formData.code.trim(),
-      name: formData.name.trim(),
-      value: parseFloat(formData.value),
-    };
-
-    if (editingProduct) {
-      await dispatch(
-        updateProduct({ id: editingProduct.id, data: productData }),
-      );
-    } else {
-      await dispatch(createProduct(productData));
-    }
-
-    handleCloseModal();
-  };
-
-  const handleDeleteClick = (product) => {
-    setProductToDelete(product);
-    setIsDeleteDialogOpen(true);
-  };
-
-  const handleConfirmDelete = async () => {
-    if (productToDelete) {
-      await dispatch(deleteProduct(productToDelete.id));
-      setIsDeleteDialogOpen(false);
-      setProductToDelete(null);
-    }
-  };
-
-  const columns = [
-    {
-      key: "code",
-      label: "Code",
-      render: (product) => (
-        <span className="font-mono font-semibold">{product.code}</span>
-      ),
-    },
-    {
-      key: "name",
-      label: "Name",
-    },
-    {
-      key: "value",
-      label: "Value",
-      render: (product) => (
-        <span className="font-semibold text-green-600">
-          {formatCurrency(product.value)}
-        </span>
-      ),
-    },
-    {
-      key: "actions",
-      label: "Actions",
-      render: (product) => (
-        <div className="flex gap-2">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => handleOpenModal(product)}
-          >
-            Edit
-          </Button>
-          <Button
-            variant="danger"
-            size="sm"
-            onClick={() => handleDeleteClick(product)}
-          >
-            Delete
-          </Button>
-        </div>
-      ),
-    },
-  ];
-
-  if (loading && products.length === 0) {
-    return <Loading fullScreen />;
-  }
+  if (loading) return <Loading fullScreen />;
+  if (error) return <div className="text-red-600">Error: {error}</div>;
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Products</h1>
-          <p className="text-gray-600 mt-1">Manage your product catalog</p>
-        </div>
-        <Button onClick={() => handleOpenModal()}>+ New Product</Button>
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold text-gray-900">Products</h1>
+        <Button onClick={() => setIsModalOpen(true)}>+ New Product</Button>
       </div>
 
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-          {error}
-        </div>
-      )}
-
-      <Card>
-        <Table
-          columns={columns}
-          data={products}
-          emptyMessage="No products found. Create your first product!"
-        />
-      </Card>
+      <div className="bg-white shadow-md rounded-lg overflow-hidden">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gradient-to-r from-blue-500 to-blue-600">
+            <tr>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
+                Code
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
+                Name
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
+                Unit Value
+              </th>
+              <th className="px-6 py-4 text-right text-xs font-semibold text-white uppercase tracking-wider">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {products.length === 0 ? (
+              <tr>
+                <td
+                  colSpan="4"
+                  className="px-6 py-12 text-center text-gray-500"
+                >
+                  No products yet. Create your first product!
+                </td>
+              </tr>
+            ) : (
+              products.map((product) => (
+                <tr
+                  key={product.id}
+                  className="hover:bg-gray-50 transition-colors"
+                >
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                      {product.code}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-gray-900 font-medium">
+                    {product.name}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-green-600 font-bold text-lg">
+                    R$ {parseFloat(product.value).toFixed(2)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                    <Button
+                      size="sm"
+                      variant="primary"
+                      onClick={() =>
+                        navigate(`/products/${product.id}/materials`)
+                      }
+                      className="bg-purple-600 hover:bg-purple-700"
+                    >
+                      🧱 Materials
+                    </Button>
+                    <Button size="sm" onClick={() => handleEdit(product)}>
+                      Edit
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="danger"
+                      onClick={() => setDeleteConfirm(product)}
+                    >
+                      Delete
+                    </Button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
 
       <Modal
         isOpen={isModalOpen}
-        onClose={handleCloseModal}
+        onClose={handleModalClose}
         title={editingProduct ? "Edit Product" : "New Product"}
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input
-            label="Code"
-            name="code"
+            label="Product Code"
             value={formData.code}
             onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-            error={formErrors.code}
             required
-            disabled={editingProduct !== null}
-            placeholder="PROD-001"
+            placeholder="e.g., PROD001"
           />
 
           <Input
-            label="Name"
-            name="name"
+            label="Product Name"
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            error={formErrors.name}
             required
-            placeholder="Product name"
+            placeholder="e.g., Premium Widget"
           />
 
           <Input
-            label="Value"
-            name="value"
+            label="Unit Value (R$)"
             type="number"
             step="0.01"
-            min="0"
+            min="0.01"
             value={formData.value}
             onChange={(e) =>
               setFormData({ ...formData, value: e.target.value })
             }
-            error={formErrors.value}
             required
-            placeholder="150.00"
+            placeholder="0.00"
           />
 
           <div className="flex gap-3 pt-4">
@@ -239,7 +215,7 @@ export default function Products() {
             <Button
               type="button"
               variant="secondary"
-              onClick={handleCloseModal}
+              onClick={handleModalClose}
               className="flex-1"
             >
               Cancel
@@ -249,11 +225,11 @@ export default function Products() {
       </Modal>
 
       <ConfirmDialog
-        isOpen={isDeleteDialogOpen}
-        onClose={() => setIsDeleteDialogOpen(false)}
-        onConfirm={handleConfirmDelete}
+        isOpen={!!deleteConfirm}
+        onClose={() => setDeleteConfirm(null)}
+        onConfirm={handleDelete}
         title="Delete Product"
-        message={`Are you sure you want to delete "${productToDelete?.name}"? This action cannot be undone.`}
+        message={`Are you sure you want to delete "${deleteConfirm?.name}"?`}
       />
     </div>
   );

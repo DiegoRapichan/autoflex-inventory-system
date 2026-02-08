@@ -224,6 +224,7 @@ public class ProductionSuggestionService {
         return ProductionSuggestionDTO.builder()
                 .product(productDTO)
                 .maxQuantity(0)
+                .unitValue(product.getValue())
                 .totalValue(BigDecimal.ZERO)
                 .materialRequirements(new ArrayList<>())
                 .canProduce(false)
