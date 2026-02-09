@@ -7,6 +7,8 @@ Sistema completo de gerenciamento de estoque de matérias-primas e sugestão int
 [![React](https://img.shields.io/badge/React-18-61DAFB?style=flat&logo=react&logoColor=white)](https://react.dev/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-336791?style=flat&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 
+**🌐 [Demo ao Vivo](https://autoflex-inventory-system.vercel.app)** | **📖 [API Docs](https://autoflex-inventory-system-production.up.railway.app/swagger-ui.html)**
+
 ---
 
 ## 📋 Sobre o Projeto
@@ -24,6 +26,8 @@ Sistema web desenvolvido para controlar o estoque de matérias-primas e calcular
 - ✅ CRUD completo de **Produtos**
 - ✅ CRUD completo de **Matérias-Primas**
 - ✅ **Associação Produto-Matéria Prima** com quantidades necessárias
+- ✅ **Controle de estoque** com alertas de estoque mínimo
+- ✅ **Controle de custos** com registro de custo unitário
 - ✅ **Algoritmo inteligente de sugestão de produção**
   - Calcula quantidade máxima produzível baseada no estoque
   - Prioriza produtos de maior valor
@@ -35,16 +39,18 @@ Sistema web desenvolvido para controlar o estoque de matérias-primas e calcular
 - ✅ Interface moderna e responsiva (Tailwind CSS)
 - ✅ Gerenciamento de estado com Redux Toolkit
 - ✅ Dashboard com estatísticas em tempo real
+- ✅ **Gerenciamento de materiais por produto** com interface dedicada
 - ✅ Visualização de sugestões de produção com detalhes
-- ✅ Indicadores visuais de estoque (verde/amarelo/vermelho)
+- ✅ **Indicadores visuais de estoque** (Low Stock alerts)
 - ✅ Notificações toast para feedback do usuário
+- ✅ Design moderno com gradientes e cards coloridos
 
 ### Qualidade & Segurança
 
 - ✅ Documentação Swagger/OpenAPI interativa
 - ✅ Validação de dados (backend e frontend)
 - ✅ Tratamento robusto de exceções
-- ✅ CORS configurado
+- ✅ CORS configurado para produção
 - ✅ Código limpo seguindo princípios SOLID
 
 ---
@@ -54,7 +60,7 @@ Sistema web desenvolvido para controlar o estoque de matérias-primas e calcular
 ### Backend
 
 - **Java 17** - Linguagem de programação
-- **Spring Boot 3.2** - Framework backend
+- **Spring Boot 3.2.2** - Framework backend
 - **Spring Data JPA** - ORM/Persistência
 - **PostgreSQL 18** - Banco de dados relacional
 - **Maven** - Gerenciamento de dependências
@@ -71,11 +77,71 @@ Sistema web desenvolvido para controlar o estoque de matérias-primas e calcular
 - **Vite** - Build tool
 - **React Toastify** - Notificações
 
+### Deploy
+
+- **Railway** - Backend (PostgreSQL + Spring Boot)
+- **Vercel** - Frontend (React)
+
+---
+
+## 🌐 URLs de Produção
+
+- **Frontend:** https://autoflex-inventory-system.vercel.app
+- **Backend API:** https://autoflex-inventory-system-production.up.railway.app
+- **Swagger UI:** https://autoflex-inventory-system-production.up.railway.app/swagger-ui.html
+
+---
+
+## 📸 Screenshots
+
+### Dashboard
+
+Visão geral do sistema com cards informativos sobre produtos, matérias-primas e produção.
+
+![Dashboard](./docs/screenshots/dashboard.png)
+
+---
+
+### Gestão de Produtos
+
+CRUD completo de produtos com interface moderna. Cada produto possui um botão dedicado para gerenciar suas matérias-primas necessárias.
+
+![Products](./docs/screenshots/products.png)
+
+---
+
+### Gestão de Matérias-Primas
+
+Controle completo de estoque com alertas visuais de estoque baixo (Low Stock). Exibe quantidade em estoque, estoque mínimo e unidade de medida.
+
+![Raw Materials](./docs/screenshots/raw-materials.png)
+
+---
+
+### Associação de Materiais ao Produto
+
+Interface dedicada para definir quais matérias-primas compõem cada produto e suas respectivas quantidades necessárias por unidade.
+
+![Adding Materials](./docs/screenshots/adding-materials.png)
+
+---
+
+### Sugestão de Produção
+
+Visualização inteligente com cards coloridos mostrando estatísticas totais e detalhamento completo de cada sugestão de produção, incluindo:
+
+- Quantidade máxima produzível
+- Valor total da produção
+- Material limitante
+- Status de cada matéria-prima (suficiente/insuficiente)
+
+![Production Suggestion](./docs/screenshots/production-suggestion.png)
+
 ---
 
 ## 📦 Pré-requisitos
 
-- Java 25 ou superior
+- Java 17 ou superior
 - Node.js 18+ e npm
 - PostgreSQL 18+
 - Maven 3.8+ (ou usar o wrapper incluído)
@@ -83,7 +149,7 @@ Sistema web desenvolvido para controlar o estoque de matérias-primas e calcular
 
 ---
 
-## 🚀 Como Executar
+## 🚀 Como Executar Localmente
 
 ### 1. Clone o repositório
 
@@ -107,10 +173,10 @@ ALTER DATABASE autoflex OWNER TO autoflex;
 cd autoflex-backend
 
 # Compilar
-mvnw clean install
+./mvnw clean install -DskipTests
 
 # Executar
-mvnw spring-boot:run
+./mvnw spring-boot:run
 
 # Backend rodará em http://localhost:8080
 # Swagger UI: http://localhost:8080/swagger-ui.html
@@ -136,7 +202,8 @@ npm run dev
 
 ### Endpoints Principais
 
-**Base URL:** `http://localhost:8080/api`
+**Base URL (Produção):** `https://autoflex-inventory-system-production.up.railway.app/api`  
+**Base URL (Local):** `http://localhost:8080/api`
 
 #### Products
 
@@ -146,8 +213,6 @@ GET    /products/{id}         - Buscar produto por ID
 POST   /products              - Criar novo produto
 PUT    /products/{id}         - Atualizar produto
 DELETE /products/{id}         - Deletar produto
-GET    /products/{id}/materials - Listar matérias-primas do produto
-POST   /products/{id}/materials - Adicionar matéria-prima ao produto
 ```
 
 #### Raw Materials
@@ -160,13 +225,22 @@ PUT    /raw-materials/{id}    - Atualizar matéria-prima
 DELETE /raw-materials/{id}    - Deletar matéria-prima
 ```
 
+#### Product-Raw Materials (Associations)
+
+```
+GET    /product-raw-materials/product/{id}  - Listar materiais de um produto
+POST   /product-raw-materials               - Associar material a produto
+PUT    /product-raw-materials/{id}          - Atualizar associação
+DELETE /product-raw-materials/product/{productId}/material/{materialId} - Remover associação
+```
+
 #### Production Suggestions
 
 ```
 GET    /production/suggestions - Calcular sugestões de produção
 ```
 
-**Documentação Interativa:** http://localhost:8080/swagger-ui.html
+**Documentação Interativa:** [Swagger UI](https://autoflex-inventory-system-production.up.railway.app/swagger-ui.html)
 
 ---
 
@@ -184,41 +258,77 @@ autoflex-inventory-system/
 │   │   │   │   ├── entity/          # Entidades JPA
 │   │   │   │   ├── exception/       # Exception Handlers
 │   │   │   │   ├── repository/      # Repositories
-│   │   │   │   └── service/         # Lógica de negócio
+│   │   │   │   └── service/         # Lógica de negócio + Algoritmo
 │   │   │   └── resources/
 │   │   │       └── application.properties
 │   │   └── test/
 │   └── pom.xml
 │
-└── autoflex-frontend/
-    ├── src/
-    │   ├── api/                     # Chamadas API
-    │   ├── components/              # Componentes React
-    │   ├── pages/                   # Páginas
-    │   ├── store/                   # Redux Store
-    │   ├── utils/                   # Utilitários
-    │   └── App.jsx
-    ├── package.json
-    └── vite.config.js
+├── autoflex-frontend/
+│   ├── src/
+│   │   ├── api/                     # Chamadas API (Axios)
+│   │   ├── components/
+│   │   │   ├── common/              # Componentes reutilizáveis
+│   │   │   └── layout/              # Layout (Header, Sidebar)
+│   │   ├── pages/                   # Páginas (Products, Materials, Production)
+│   │   ├── store/                   # Redux Store + Slices
+│   │   ├── utils/                   # Formatters e utilitários
+│   │   └── App.jsx
+│   ├── package.json
+│   ├── vite.config.js
+│   └── tailwind.config.js
+│
+└── docs/
+    └── screenshots/                 # Screenshots do sistema
+        ├── dashboard.png
+        ├── products.png
+        ├── raw-materials.png
+        ├── adding-materials.png
+        └── production-suggestion.png
 ```
 
 ---
 
-## 🧪 Testes
+## 💾 Modelo de Dados
 
-### Backend
+### Tabela: `products`
 
-```bash
-cd autoflex-backend
-mvn test
-```
+| Campo      | Tipo          | Descrição                 |
+| ---------- | ------------- | ------------------------- |
+| id         | BIGSERIAL     | Chave primária            |
+| code       | VARCHAR(50)   | Código único do produto   |
+| name       | VARCHAR(200)  | Nome do produto           |
+| value      | NUMERIC(10,2) | Valor unitário do produto |
+| created_at | TIMESTAMP     | Data de criação           |
+| updated_at | TIMESTAMP     | Data de atualização       |
 
-### Frontend
+### Tabela: `raw_materials`
 
-```bash
-cd autoflex-frontend
-npm run test
-```
+| Campo             | Tipo              | Descrição                      |
+| ----------------- | ----------------- | ------------------------------ |
+| id                | BIGSERIAL         | Chave primária                 |
+| code              | VARCHAR(50)       | Código único do material       |
+| name              | VARCHAR(200)      | Nome do material               |
+| stock_quantity    | NUMERIC(10,3)     | Quantidade em estoque          |
+| **minimum_stock** | **NUMERIC(10,2)** | **Estoque mínimo (alerta)** ⭐ |
+| **unit_cost**     | **NUMERIC(10,2)** | **Custo unitário** ⭐          |
+| unit              | VARCHAR(20)       | Unidade de medida              |
+| created_at        | TIMESTAMP         | Data de criação                |
+| updated_at        | TIMESTAMP         | Data de atualização            |
+
+### Tabela: `product_raw_materials`
+
+| Campo             | Tipo          | Descrição                         |
+| ----------------- | ------------- | --------------------------------- |
+| id                | BIGSERIAL     | Chave primária                    |
+| product_id        | BIGINT        | FK para products                  |
+| raw_material_id   | BIGINT        | FK para raw_materials             |
+| required_quantity | NUMERIC(10,3) | Quantidade necessária por unidade |
+
+**Constraints:**
+
+- UNIQUE (product_id, raw_material_id)
+- ON DELETE CASCADE
 
 ---
 
@@ -240,31 +350,33 @@ O sistema implementa um algoritmo inteligente que:
 
 ```
 Produto: Cadeira (Valor: R$ 150,00)
-Matérias-primas:
-- Madeira: 2.5 KG necessário | 100 KG em estoque → 40 unidades possíveis
-- Parafuso: 8 UN necessário | 200 UN em estoque → 25 unidades possíveis
-- Verniz: 0.3 L necessário | 5 L em estoque → 16 unidades possíveis
+Matérias-primas necessárias:
+- Madeira: 2.5 KG por unidade | 100 KG em estoque → 40 unidades possíveis
+- Parafuso: 8 UN por unidade | 200 UN em estoque → 25 unidades possíveis
+- Verniz: 0.3 L por unidade | 5 L em estoque → 16 unidades possíveis
 
-Quantidade máxima = MIN(40, 25, 16) = 16 unidades
-Valor total = 16 × R$ 150,00 = R$ 2.400,00
-Material limitante: Verniz
+Quantidade máxima produzível = MIN(40, 25, 16) = 16 unidades
+Valor total da produção = 16 × R$ 150,00 = R$ 2.400,00
+Material limitante: Verniz (estoque baixo)
 ```
 
 ---
 
-## 📸 Screenshots
+## 🧪 Testes
 
-### Dashboard
+### Backend
 
-![Dashboard](./docs/screenshots/dashboard.png)
+```bash
+cd autoflex-backend
+./mvnw test
+```
 
-### Gestão de Produtos
+### Frontend
 
-![Products](./docs/screenshots/products.png)
-
-### Sugestão de Produção
-
-![Production](./docs/screenshots/production.png)
+```bash
+cd autoflex-frontend
+npm run test
+```
 
 ---
 
@@ -288,14 +400,41 @@ Material limitante: Verniz
 - [x] RF004 - Consulta de Produção (Backend)
 - [x] RF005 - Interface CRUD Produtos
 - [x] RF006 - Interface CRUD Matérias-Primas
-- [x] RF007 - Interface Associações
+- [x] RF007 - Interface Associações (Página dedicada)
 - [x] RF008 - Interface Sugestão de Produção
 
-### Desejáveis
+### Extras Implementados
 
+- [x] **Alerta de estoque mínimo** (minimum_stock)
+- [x] **Controle de custo unitário** (unit_cost)
+- [x] **Interface de gerenciamento de materiais** por produto
+- [x] **Design moderno** com gradientes e animações
+- [x] **Badges coloridos** para status de estoque
+- [x] **Deploy em produção** (Railway + Vercel)
+- [x] **Documentação Swagger** completa
 - [x] Testes unitários Backend
 - [x] Testes unitários Frontend
-- [x] Documentação completa
+
+---
+
+## 🚀 Deploy
+
+### Backend (Railway)
+
+```bash
+# Railway detecta automaticamente o projeto Java
+# Configure as variáveis de ambiente:
+DATABASE_URL=<postgresql-url>
+SPRING_PROFILES_ACTIVE=prod
+```
+
+### Frontend (Vercel)
+
+```bash
+# Vercel detecta automaticamente o projeto Vite
+# Configure as variáveis de ambiente:
+VITE_API_URL=https://autoflex-inventory-system-production.up.railway.app/api
+```
 
 ---
 
@@ -317,7 +456,7 @@ Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para ma
 
 ## 🙏 Agradecimentos
 
-Projeto desenvolvido para o teste prático da **Autoflex**. Agradeço pela oportunidade de demonstrar minhas habilidades técnicas.
+Projeto desenvolvido para o teste prático da **Autoflex**. Agradeço pela oportunidade de demonstrar minhas habilidades técnicas em desenvolvimento full-stack.
 
 ---
 
