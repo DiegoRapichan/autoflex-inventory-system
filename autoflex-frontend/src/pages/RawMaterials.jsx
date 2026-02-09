@@ -2,222 +2,265 @@ import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchRawMaterials,
+  createRawMaterial,
+  updateRawMaterial,
   deleteRawMaterial,
 } from "../store/slices/rawMaterialSlice";
 import Button from "../components/common/Button";
-import Modal from "../components/common/Modal";
 import Input from "../components/common/Input";
+import Modal from "../components/common/Modal";
+import Table from "../components/common/Table";
+import Card from "../components/common/Card";
 import Loading from "../components/common/Loading";
 import Badge from "../components/common/Badge";
 import ConfirmDialog from "../components/common/ConfirmDialog";
-import { toast } from "react-toastify";
-import api from "../api/rawMaterialApi";
+import {
+  formatNumber,
+  isLowStock,
+  getStockBadgeClass,
+} from "../utils/formatters";
 
 export default function RawMaterials() {
   const dispatch = useDispatch();
   const {
-    items: rawMaterials,
+    items: materials,
     loading,
     error,
   } = useSelector((state) => state.rawMaterials);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState(null);
-  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [materialToDelete, setMaterialToDelete] = useState(null);
 
   const [formData, setFormData] = useState({
     code: "",
     name: "",
     stockQuantity: "",
-    unit: "KG",
+    unit: "",
   });
+
+  const [formErrors, setFormErrors] = useState({});
 
   useEffect(() => {
     dispatch(fetchRawMaterials());
   }, [dispatch]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      if (editingMaterial) {
-        await api.update(editingMaterial.id, formData);
-        toast.success("Material updated successfully!");
-      } else {
-        await api.create(formData);
-        toast.success("Material created successfully!");
-      }
-      setIsModalOpen(false);
-      resetForm();
-      dispatch(fetchRawMaterials());
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to save material");
+  const handleOpenModal = (material = null) => {
+    if (material) {
+      setEditingMaterial(material);
+      setFormData({
+        code: material.code,
+        name: material.name,
+        stockQuantity: material.stockQuantity,
+        unit: material.unit,
+      });
+    } else {
+      setEditingMaterial(null);
+      setFormData({ code: "", name: "", stockQuantity: "", unit: "" });
     }
-  };
-
-  const handleEdit = (material) => {
-    setEditingMaterial(material);
-    setFormData({
-      code: material.code,
-      name: material.name,
-      stockQuantity: material.stockQuantity,
-      unit: material.unit,
-    });
+    setFormErrors({});
     setIsModalOpen(true);
   };
 
-  const handleDelete = async () => {
-    try {
-      await dispatch(deleteRawMaterial(deleteConfirm.id)).unwrap();
-      toast.success("Material deleted successfully!");
-      setDeleteConfirm(null);
-    } catch (error) {
-      toast.error("Failed to delete material");
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingMaterial(null);
+    setFormData({ code: "", name: "", stockQuantity: "", unit: "" });
+    setFormErrors({});
+  };
+
+  const validateForm = () => {
+    const errors = {};
+
+    if (!formData.code.trim()) {
+      errors.code = "Code is required";
+    }
+
+    if (!formData.name.trim()) {
+      errors.name = "Name is required";
+    }
+
+    if (!formData.stockQuantity || formData.stockQuantity < 0) {
+      errors.stockQuantity = "Stock quantity must be 0 or greater";
+    }
+
+    if (!formData.unit.trim()) {
+      errors.unit = "Unit is required";
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!validateForm()) return;
+
+    const materialData = {
+      code: formData.code.trim(),
+      name: formData.name.trim(),
+      stockQuantity: parseFloat(formData.stockQuantity),
+      unit: formData.unit.trim(),
+    };
+
+    if (editingMaterial) {
+      await dispatch(
+        updateRawMaterial({ id: editingMaterial.id, data: materialData }),
+      );
+    } else {
+      await dispatch(createRawMaterial(materialData));
+    }
+
+    handleCloseModal();
+  };
+
+  const handleDeleteClick = (material) => {
+    setMaterialToDelete(material);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (materialToDelete) {
+      await dispatch(deleteRawMaterial(materialToDelete.id));
+      setIsDeleteDialogOpen(false);
+      setMaterialToDelete(null);
     }
   };
 
-  const resetForm = () => {
-    setFormData({
-      code: "",
-      name: "",
-      stockQuantity: "",
-      unit: "KG",
-    });
-    setEditingMaterial(null);
-  };
+  const columns = [
+    {
+      key: "code",
+      label: "Code",
+      render: (material) => (
+        <span className="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+          {material.code}
+        </span>
+      ),
+    },
+    {
+      key: "name",
+      label: "Name",
+      render: (material) => (
+        <span className="text-gray-900 font-medium">{material.name}</span>
+      ),
+    },
+    {
+      key: "stock",
+      label: "Stock",
+      render: (material) => (
+        <div className="flex items-center gap-2">
+          <span
+            className={`text-lg font-bold ${
+              isLowStock(material.stockQuantity)
+                ? "text-red-600"
+                : "text-blue-600"
+            }`}
+          >
+            {formatNumber(material.stockQuantity)}
+          </span>
+          <Badge variant="secondary" className="text-xs">
+            {material.unit}
+          </Badge>
+        </div>
+      ),
+    },
+    {
+      key: "status",
+      label: "Status",
+      render: (material) => (
+        <Badge
+          variant={isLowStock(material.stockQuantity) ? "danger" : "success"}
+          className="inline-flex items-center"
+        >
+          {isLowStock(material.stockQuantity) ? "⚠️ Low Stock" : "✓ OK"}
+        </Badge>
+      ),
+    },
+    {
+      key: "actions",
+      label: "Actions",
+      render: (material) => (
+        <div className="flex gap-2 justify-end">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => handleOpenModal(material)}
+          >
+            Edit
+          </Button>
+          <Button
+            variant="danger"
+            size="sm"
+            onClick={() => handleDeleteClick(material)}
+          >
+            Delete
+          </Button>
+        </div>
+      ),
+    },
+  ];
 
-  const handleModalClose = () => {
-    setIsModalOpen(false);
-    resetForm();
-  };
-
-  const isLowStock = (stockQuantity) => {
-    return parseFloat(stockQuantity) < 10;
-  };
-
-  if (loading) return <Loading fullScreen />;
-  if (error) return <div className="text-red-600 p-4">Error: {error}</div>;
+  if (loading && materials.length === 0) {
+    return <Loading fullScreen />;
+  }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900">Raw Materials</h1>
-        <Button onClick={() => setIsModalOpen(true)}>+ New Material</Button>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Raw Materials</h1>
+          <p className="text-gray-600 mt-1">Manage your inventory stock</p>
+        </div>
+        <Button onClick={() => handleOpenModal()}>+ New Material</Button>
       </div>
 
-      <div className="bg-white shadow-md rounded-lg overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gradient-to-r from-green-500 to-green-600">
-            <tr>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
-                Code
-              </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
-                Name
-              </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
-                Stock
-              </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
-                Unit
-              </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
-                Status
-              </th>
-              <th className="px-6 py-4 text-right text-xs font-semibold text-white uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {rawMaterials.length === 0 ? (
-              <tr>
-                <td
-                  colSpan="6"
-                  className="px-6 py-12 text-center text-gray-500"
-                >
-                  No materials yet. Create your first material!
-                </td>
-              </tr>
-            ) : (
-              rawMaterials.map((material) => (
-                <tr
-                  key={material.id}
-                  className={`hover:bg-gray-50 transition-colors ${
-                    isLowStock(material.stockQuantity) ? "bg-red-50" : ""
-                  }`}
-                >
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                      {material.code}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-gray-900 font-medium">
-                    {material.name}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`text-lg font-bold ${
-                        isLowStock(material.stockQuantity)
-                          ? "text-red-600"
-                          : "text-blue-600"
-                      }`}
-                    >
-                      {parseFloat(material.stockQuantity).toFixed(3)}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <Badge variant="secondary">{material.unit}</Badge>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {isLowStock(material.stockQuantity) ? (
-                      <Badge variant="danger">⚠️ Low Stock</Badge>
-                    ) : (
-                      <Badge variant="success">✓ OK</Badge>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                    <Button size="sm" onClick={() => handleEdit(material)}>
-                      Edit
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="danger"
-                      onClick={() => setDeleteConfirm(material)}
-                    >
-                      Delete
-                    </Button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+          {error}
+        </div>
+      )}
+
+      <Card className="overflow-hidden">
+        <Table
+          columns={columns}
+          data={materials}
+          emptyMessage="No raw materials found. Create your first material!"
+          className="min-w-full"
+        />
+      </Card>
 
       <Modal
         isOpen={isModalOpen}
-        onClose={handleModalClose}
+        onClose={handleCloseModal}
         title={editingMaterial ? "Edit Raw Material" : "New Raw Material"}
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input
-            label="Material Code"
+            label="Code"
+            name="code"
             value={formData.code}
             onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+            error={formErrors.code}
             required
-            placeholder="e.g., MAT001"
+            disabled={editingMaterial !== null}
+            placeholder="MAT-001"
           />
 
           <Input
-            label="Material Name"
+            label="Name"
+            name="name"
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            error={formErrors.name}
             required
-            placeholder="e.g., Stainless Steel"
+            placeholder="Material name"
           />
 
           <Input
             label="Stock Quantity"
+            name="stockQuantity"
             type="number"
             step="0.001"
             min="0"
@@ -225,30 +268,20 @@ export default function RawMaterials() {
             onChange={(e) =>
               setFormData({ ...formData, stockQuantity: e.target.value })
             }
+            error={formErrors.stockQuantity}
             required
-            placeholder="0.000"
+            placeholder="100.000"
           />
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Unit
-            </label>
-            <select
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={formData.unit}
-              onChange={(e) =>
-                setFormData({ ...formData, unit: e.target.value })
-              }
-              required
-            >
-              <option value="KG">Kilogram (KG)</option>
-              <option value="L">Liter (L)</option>
-              <option value="UN">Unit (UN)</option>
-              <option value="M">Meter (M)</option>
-              <option value="M2">Square Meter (M²)</option>
-              <option value="M3">Cubic Meter (M³)</option>
-            </select>
-          </div>
+          <Input
+            label="Unit"
+            name="unit"
+            value={formData.unit}
+            onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+            error={formErrors.unit}
+            required
+            placeholder="KG, L, UN, M, etc"
+          />
 
           <div className="flex gap-3 pt-4">
             <Button type="submit" className="flex-1">
@@ -257,7 +290,7 @@ export default function RawMaterials() {
             <Button
               type="button"
               variant="secondary"
-              onClick={handleModalClose}
+              onClick={handleCloseModal}
               className="flex-1"
             >
               Cancel
@@ -267,11 +300,11 @@ export default function RawMaterials() {
       </Modal>
 
       <ConfirmDialog
-        isOpen={!!deleteConfirm}
-        onClose={() => setDeleteConfirm(null)}
-        onConfirm={handleDelete}
-        title="Delete Material"
-        message={`Are you sure you want to delete "${deleteConfirm?.name}"?`}
+        isOpen={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Raw Material"
+        message={`Are you sure you want to delete "${materialToDelete?.name}"? This action cannot be undone.`}
       />
     </div>
   );
