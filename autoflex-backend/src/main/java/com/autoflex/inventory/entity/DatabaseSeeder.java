@@ -52,7 +52,7 @@ public class DatabaseSeeder implements CommandLineRunner {
 
         em.createNativeQuery("""
             INSERT INTO products
-                (code, name, price, created_at, updated_at)
+                (code, name, value, created_at, updated_at)
             VALUES
                 ('PROD001', 'Retrovisor Externo Direito', 285.00, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
                 ('PROD002', 'Para-choque Dianteiro', 450.00, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
