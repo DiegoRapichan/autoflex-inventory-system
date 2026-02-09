@@ -21,31 +21,17 @@ public class DatabaseSeeder implements CommandLineRunner {
     @Transactional
     public void run(String... args) {
 
-        Long count = (Long) em
-                .createQuery("SELECT COUNT(p) FROM Product p")
-                .getSingleResult();
+        Long productCount = ((Number) em.createNativeQuery(
+                "SELECT COUNT(*) FROM products"
+        ).getSingleResult()).longValue();
 
-        if (count > 0) {
-            System.out.println("ℹ️ Database already has data. Skipping seed.");
+        if (productCount > 0) {
+            System.out.println("ℹ️ Products already exist. Skipping seed.");
             return;
         }
 
-        System.out.println("🧹 Cleaning database...");
+        System.out.println("🌱 Seeding database...");
 
-        em.createNativeQuery("DELETE FROM product_raw_materials").executeUpdate();
-        em.createNativeQuery("DELETE FROM products").executeUpdate();
-        em.createNativeQuery("DELETE FROM raw_materials").executeUpdate();
-
-        em.createNativeQuery("ALTER SEQUENCE products_id_seq RESTART WITH 1").executeUpdate();
-        em.createNativeQuery("ALTER SEQUENCE raw_materials_id_seq RESTART WITH 1").executeUpdate();
-        em.createNativeQuery("ALTER SEQUENCE product_raw_materials_id_seq RESTART WITH 1").executeUpdate();
-
-        System.out.println("✅ Old data removed");
-
-        // ==========================
-        // RAW MATERIALS
-        // ==========================
-        System.out.println("📦 Inserting raw materials...");
 
         em.createNativeQuery("""
             INSERT INTO raw_materials
@@ -63,10 +49,6 @@ public class DatabaseSeeder implements CommandLineRunner {
 
         em.flush();
 
-        // ==========================
-        // PRODUCTS (price, NOT value)
-        // ==========================
-        System.out.println("🚗 Inserting products...");
 
         em.createNativeQuery("""
             INSERT INTO products
@@ -81,20 +63,13 @@ public class DatabaseSeeder implements CommandLineRunner {
 
         em.flush();
 
-        // ==========================
-        // FETCH IDS
-        // ==========================
+
         List<BigInteger> productIds = em.createNativeQuery("""
-            SELECT id
-            FROM products
-            WHERE code IN ('PROD001','PROD002','PROD003','PROD004','PROD005')
-            ORDER BY code
+            SELECT id FROM products ORDER BY code
         """).getResultList();
 
         List<Object[]> rawMaterials = em.createNativeQuery("""
-            SELECT code, id
-            FROM raw_materials
-            WHERE code IN ('MP001','MP002','MP003','MP004','MP005','MP006','MP007','MP008')
+            SELECT code, id FROM raw_materials
         """).getResultList();
 
         Map<String, Long> rmMap = new HashMap<>();
@@ -108,10 +83,6 @@ public class DatabaseSeeder implements CommandLineRunner {
         Long p4 = productIds.get(3).longValue();
         Long p5 = productIds.get(4).longValue();
 
-        // ==========================
-        // PRODUCT ↔ RAW MATERIALS
-        // ==========================
-        System.out.println("🔗 Creating product-material relations...");
 
         em.createNativeQuery(String.format("""
             INSERT INTO product_raw_materials
@@ -148,9 +119,6 @@ public class DatabaseSeeder implements CommandLineRunner {
                 p5, rmMap.get("MP007")
         )).executeUpdate();
 
-        System.out.println("✅ Database seeded successfully!");
-        System.out.println("   • 8 raw materials");
-        System.out.println("   • 5 products");
-        System.out.println("   • 14 relationships");
+        System.out.println("✅ Database seeded successfully.");
     }
 }
