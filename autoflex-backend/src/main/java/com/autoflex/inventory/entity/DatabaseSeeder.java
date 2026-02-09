@@ -2,29 +2,33 @@ package com.autoflex.inventory.entity;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigInteger;
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @Component
+@Profile("prod")
+@RequiredArgsConstructor
+@Transactional
 public class DatabaseSeeder implements CommandLineRunner {
 
     @PersistenceContext
-    private EntityManager em;
+    private final EntityManager em;
 
     @Override
-    @Transactional
     public void run(String... args) {
 
-        Long productCount = ((Number) em.createNativeQuery(
-                "SELECT COUNT(*) FROM products"
-        ).getSingleResult()).longValue();
-
+        // Check if products already exist
+        Long productCount = ((Number) em.createNativeQuery("SELECT COUNT(*) FROM products")
+                .getSingleResult()).longValue();
         if (productCount > 0) {
             System.out.println("ℹ️ Products already exist. Skipping seed.");
             return;
@@ -32,7 +36,7 @@ public class DatabaseSeeder implements CommandLineRunner {
 
         System.out.println("🌱 Seeding database...");
 
-
+        // Insert raw materials
         em.createNativeQuery("""
             INSERT INTO raw_materials
                 (code, name, unit, stock_quantity, minimum_stock, unit_cost, created_at, updated_at)
@@ -45,11 +49,12 @@ public class DatabaseSeeder implements CommandLineRunner {
                 ('MP006', 'Tinta Automotiva Preta', 'litro', 80.00, 20.00, 45.00, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
                 ('MP007', 'Vidro Temperado', 'm²', 50.00, 10.00, 85.00, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
                 ('MP008', 'Espuma Poliuretano', 'kg', 100.00, 25.00, 15.60, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            ON CONFLICT (code) DO NOTHING
         """).executeUpdate();
 
         em.flush();
 
-
+        // Insert products
         em.createNativeQuery("""
             INSERT INTO products
                 (code, name, value, created_at, updated_at)
@@ -59,22 +64,29 @@ public class DatabaseSeeder implements CommandLineRunner {
                 ('PROD003', 'Capô do Motor', 680.00, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
                 ('PROD004', 'Banco Dianteiro Motorista', 1250.00, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
                 ('PROD005', 'Painel de Instrumentos', 890.00, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            ON CONFLICT (code) DO NOTHING
         """).executeUpdate();
 
         em.flush();
 
-
-        List<BigInteger> productIds = em.createNativeQuery("""
+        // Get inserted product IDs
+        List<BigDecimal> productIds = em.createNativeQuery("""
             SELECT id FROM products ORDER BY code
         """).getResultList();
 
+        // Map raw material codes to IDs
         List<Object[]> rawMaterials = em.createNativeQuery("""
             SELECT code, id FROM raw_materials
         """).getResultList();
 
         Map<String, Long> rmMap = new HashMap<>();
         for (Object[] row : rawMaterials) {
-            rmMap.put((String) row[0], ((BigInteger) row[1]).longValue());
+            rmMap.put((String) row[0], ((Number) row[1]).longValue());
+        }
+
+        // Ensure all raw material IDs exist
+        for (String code : List.of("MP001","MP002","MP003","MP004","MP005","MP006","MP007","MP008")) {
+            Objects.requireNonNull(rmMap.get(code), "Raw material " + code + " not found in DB!");
         }
 
         Long p1 = productIds.get(0).longValue();
@@ -83,41 +95,40 @@ public class DatabaseSeeder implements CommandLineRunner {
         Long p4 = productIds.get(3).longValue();
         Long p5 = productIds.get(4).longValue();
 
-
-        em.createNativeQuery(String.format("""
-            INSERT INTO product_raw_materials
-                (product_id, raw_material_id, required_quantity)
+        // Insert product-raw_material relations (idempotent)
+        em.createNativeQuery("""
+            INSERT INTO product_raw_materials (product_id, raw_material_id, required_quantity)
             VALUES
-                (%d, %d, 0.800),
-                (%d, %d, 0.150),
-                (%d, %d, 3.000),
-                (%d, %d, 4.500),
-                (%d, %d, 0.300),
-                (%d, %d, 8.000),
-                (%d, %d, 12.000),
-                (%d, %d, 0.500),
-                (%d, %d, 0.200),
-                (%d, %d, 3.500),
-                (%d, %d, 2.200),
-                (%d, %d, 12.000),
-                (%d, %d, 1.800),
-                (%d, %d, 0.250)
-        """,
-                p1, rmMap.get("MP004"),
-                p1, rmMap.get("MP007"),
-                p1, rmMap.get("MP005"),
-                p2, rmMap.get("MP004"),
-                p2, rmMap.get("MP006"),
-                p2, rmMap.get("MP005"),
-                p3, rmMap.get("MP001"),
-                p3, rmMap.get("MP006"),
-                p3, rmMap.get("MP003"),
-                p4, rmMap.get("MP008"),
-                p4, rmMap.get("MP002"),
-                p4, rmMap.get("MP005"),
-                p5, rmMap.get("MP004"),
-                p5, rmMap.get("MP007")
-        )).executeUpdate();
+                (:p1, :mp4, 0.8),
+                (:p1, :mp7, 0.15),
+                (:p1, :mp5, 3.0),
+                (:p2, :mp4, 4.5),
+                (:p2, :mp6, 0.3),
+                (:p2, :mp5, 8.0),
+                (:p3, :mp1, 12.0),
+                (:p3, :mp6, 0.5),
+                (:p3, :mp3, 0.2),
+                (:p4, :mp8, 3.5),
+                (:p4, :mp2, 2.2),
+                (:p4, :mp5, 12.0),
+                (:p5, :mp4, 1.8),
+                (:p5, :mp7, 0.25)
+            ON CONFLICT (product_id, raw_material_id) DO NOTHING
+        """)
+        .setParameter("p1", p1)
+        .setParameter("p2", p2)
+        .setParameter("p3", p3)
+        .setParameter("p4", p4)
+        .setParameter("p5", p5)
+        .setParameter("mp1", rmMap.get("MP001"))
+        .setParameter("mp2", rmMap.get("MP002"))
+        .setParameter("mp3", rmMap.get("MP003"))
+        .setParameter("mp4", rmMap.get("MP004"))
+        .setParameter("mp5", rmMap.get("MP005"))
+        .setParameter("mp6", rmMap.get("MP006"))
+        .setParameter("mp7", rmMap.get("MP007"))
+        .setParameter("mp8", rmMap.get("MP008"))
+        .executeUpdate();
 
         System.out.println("✅ Database seeded successfully.");
     }
