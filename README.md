@@ -1,469 +1,249 @@
-# 🏭 Autoflex Inventory Management System
+# Autoflex Inventory System
 
-Sistema completo de gerenciamento de estoque de matérias-primas e sugestão inteligente de produção baseada em disponibilidade e valor dos produtos.
+> Sistema full stack de gestão de estoque e sugestão inteligente de produção — calcula automaticamente quais produtos fabricar com base no estoque disponível de matérias-primas, priorizando os de maior valor agregado.
 
-[![Java](https://img.shields.io/badge/Java-17-ED8B00?style=flat&logo=openjdk&logoColor=white)](https://openjdk.org/)
-[![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.2-6DB33F?style=flat&logo=spring&logoColor=white)](https://spring.io/projects/spring-boot)
-[![React](https://img.shields.io/badge/React-18-61DAFB?style=flat&logo=react&logoColor=white)](https://react.dev/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-336791?style=flat&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+![Java](https://img.shields.io/badge/Java_17-ED8B00?style=flat&logo=openjdk&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring_Boot_3.2-6DB33F?style=flat&logo=springboot&logoColor=white)
+![React](https://img.shields.io/badge/React_18-61DAFB?style=flat&logo=react&logoColor=black)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=flat&logo=postgresql&logoColor=white)
+![Redux](https://img.shields.io/badge/Redux_Toolkit-764ABC?style=flat&logo=redux&logoColor=white)
+![Swagger](https://img.shields.io/badge/Swagger-85EA2D?style=flat&logo=swagger&logoColor=black)
 
-**🌐 [Demo ao Vivo](https://autoflex-inventory-system.vercel.app)** | **📖 [API Docs](https://autoflex-inventory-system-production.up.railway.app/swagger-ui.html)**
-
----
-
-## 📋 Sobre o Projeto
-
-Sistema web desenvolvido para controlar o estoque de matérias-primas e calcular automaticamente quais produtos podem ser produzidos com base no estoque disponível, priorizando produtos de maior valor.
-
-**Desenvolvido para:** Teste Prático Autoflex
+**[🚀 App ao Vivo](https://autoflex-inventory-system.vercel.app)** • **[📖 Swagger UI](https://autoflex-inventory-system-production.up.railway.app/swagger-ui.html)** • **[🔌 API](https://autoflex-inventory-system-production.up.railway.app/api)**
 
 ---
 
-## ✨ Funcionalidades
+## 🛠️ Stack
 
-### Backend (API REST)
-
-- ✅ CRUD completo de **Produtos**
-- ✅ CRUD completo de **Matérias-Primas**
-- ✅ **Associação Produto-Matéria Prima** com quantidades necessárias
-- ✅ **Controle de estoque** com alertas de estoque mínimo
-- ✅ **Controle de custos** com registro de custo unitário
-- ✅ **Algoritmo inteligente de sugestão de produção**
-  - Calcula quantidade máxima produzível baseada no estoque
-  - Prioriza produtos de maior valor
-  - Identifica materiais limitantes
-  - Calcula valor total de produção
-
-### Frontend (React SPA)
-
-- ✅ Interface moderna e responsiva (Tailwind CSS)
-- ✅ Gerenciamento de estado com Redux Toolkit
-- ✅ Dashboard com estatísticas em tempo real
-- ✅ **Gerenciamento de materiais por produto** com interface dedicada
-- ✅ Visualização de sugestões de produção com detalhes
-- ✅ **Indicadores visuais de estoque** (Low Stock alerts)
-- ✅ Notificações toast para feedback do usuário
-- ✅ Design moderno com gradientes e cards coloridos
-
-### Qualidade & Segurança
-
-- ✅ Documentação Swagger/OpenAPI interativa
-- ✅ Validação de dados (backend e frontend)
-- ✅ Tratamento robusto de exceções
-- ✅ CORS configurado para produção
-- ✅ Código limpo seguindo princípios SOLID
+| Camada           | Tecnologias                                                                           |
+| ---------------- | ------------------------------------------------------------------------------------- |
+| **Backend**      | Java 17 · Spring Boot 3.2 · Spring Data JPA · Hibernate · PostgreSQL · Lombok · Maven |
+| **Documentação** | Swagger / OpenAPI 3                                                                   |
+| **Frontend**     | React 18 · Redux Toolkit · React Router 6 · Axios · Tailwind CSS · Vite               |
+| **Deploy**       | Railway (backend + PostgreSQL) · Vercel (frontend)                                    |
 
 ---
 
-## 🛠️ Tecnologias Utilizadas
+## ⚙️ Destaques Técnicos
 
-### Backend
+**Algoritmo de sugestão de produção (`ProductionSuggestionService`)**
+Serviço dedicado exclusivamente ao algoritmo, separado do `ProductService`. Produtos chegam ordenados por valor decrescente (`findAllByOrderByValueDesc` — query derivada do Spring Data). Para cada produto, busca as matérias-primas associadas e chama `calculateMaxQuantity`: itera sobre cada `ProductRawMaterial`, divide `availableStock / requiredPerUnit` com `RoundingMode.DOWN` (arredondamento conservador — nunca superestima), e aplica `Math.min` acumulativo para encontrar o limitante. Materiais com estoque zero são capturados separadamente na lista `missingMaterials`. A resposta inclui `totalRequired`, `remainingStock` e `sufficient` por material — o frontend exibe o detalhamento completo sem fazer nenhum cálculo.
 
-- **Java 17** - Linguagem de programação
-- **Spring Boot 3.2.2** - Framework backend
-- **Spring Data JPA** - ORM/Persistência
-- **PostgreSQL 18** - Banco de dados relacional
-- **Maven** - Gerenciamento de dependências
-- **Lombok** - Redução de boilerplate
-- **Swagger/OpenAPI 3** - Documentação da API
+**`CalculationResult` como classe interna de retorno**
+O método privado `calculateMaxQuantity` retorna um record auxiliar (`CalculationResult`) encapsulando `maxQuantity` + `missingMaterials` — evita múltiplos retornos ou parâmetros de saída, padrão limpo para métodos com múltiplos resultados relacionados.
 
-### Frontend
+**Totalizadores e warnings gerados no backend**
+`ProductionResponseDTO` inclui `totalProductionValue`, `totalUnits`, `totalProductTypes` e `warnings` — calculados no serviço com streams. Produtos sem matérias-primas cadastradas são detectados e retornam sugestão vazia com razão descritiva, sem quebrar o fluxo.
 
-- **React 18** - Biblioteca UI
-- **Redux Toolkit** - Gerenciamento de estado
-- **React Router 6** - Navegação SPA
-- **Axios** - Cliente HTTP
-- **Tailwind CSS** - Framework CSS
-- **Vite** - Build tool
-- **React Toastify** - Notificações
+**Hierarquia de exceções customizada**
+`ResourceNotFoundException` (404) e `BusinessException` (400) tratadas globalmente via `@ControllerAdvice` — respostas de erro padronizadas em toda a API sem try/catch nos controllers.
 
-### Deploy
+**Validação de unicidade sem busca desnecessária**
+`productRepository.existsByCode(code)` antes de criar ou atualizar — verifica duplicidade com query `EXISTS` sem carregar o objeto inteiro. Em atualização, só valida o novo código se ele foi efetivamente alterado.
 
-- **Railway** - Backend (PostgreSQL + Spring Boot)
-- **Vercel** - Frontend (React)
+**`@Transactional(readOnly = true)` em todas as queries de leitura**
+Incluindo `calculateProductionSuggestions` — o Hibernate não abre sessão de escrita, o banco pode aplicar otimizações de read-only. Detalhe que separa quem entende JPA de quem apenas usa o framework.
 
----
+**DTOs separados das entidades JPA**
+`toDTOWithMaterials` só é chamado quando o frontend precisa da lista completa — listagens gerais não fazem join desnecessário. O modelo de banco nunca é exposto diretamente na API.
 
-## 🌐 URLs de Produção
-
-- **Frontend:** https://autoflex-inventory-system.vercel.app
-- **Backend API:** https://autoflex-inventory-system-production.up.railway.app
-- **Swagger UI:** https://autoflex-inventory-system-production.up.railway.app/swagger-ui.html
-
----
-
-## 📸 Screenshots
-
-### Dashboard
-
-Visão geral do sistema com cards informativos sobre produtos, matérias-primas e produção.
-
-![Dashboard](./docs/screenshots/dashboard.png)
-
----
-
-### Gestão de Produtos
-
-CRUD completo de produtos com interface moderna. Cada produto possui um botão dedicado para gerenciar suas matérias-primas necessárias.
-
-![Products](./docs/screenshots/products.png)
-
----
-
-### Gestão de Matérias-Primas
-
-Controle completo de estoque com alertas visuais de estoque baixo (Low Stock). Exibe quantidade em estoque, estoque mínimo e unidade de medida.
-
-![Raw Materials](./docs/screenshots/raw-materials.png)
-
----
-
-### Associação de Materiais ao Produto
-
-Interface dedicada para definir quais matérias-primas compõem cada produto e suas respectivas quantidades necessárias por unidade.
-
-![Adding Materials](./docs/screenshots/adding-materials.png)
-
----
-
-### Sugestão de Produção
-
-Visualização inteligente com cards coloridos mostrando estatísticas totais e detalhamento completo de cada sugestão de produção, incluindo:
-
-- Quantidade máxima produzível
-- Valor total da produção
-- Material limitante
-- Status de cada matéria-prima (suficiente/insuficiente)
-
-![Production Suggestion](./docs/screenshots/production-suggestion.png)
-
----
-
-## 📦 Pré-requisitos
-
-- Java 17 ou superior
-- Node.js 18+ e npm
-- PostgreSQL 18+
-- Maven 3.8+ (ou usar o wrapper incluído)
-- Git
-
----
-
-## 🚀 Como Executar Localmente
-
-### 1. Clone o repositório
-
-```bash
-git clone https://github.com/DiegoRapichan/autoflex-inventory-system.git
-cd autoflex-inventory-system
-```
-
-### 2. Configure o PostgreSQL
-
-```sql
-CREATE DATABASE autoflex;
-CREATE USER autoflex WITH PASSWORD 'autoflex123';
-GRANT ALL PRIVILEGES ON DATABASE autoflex TO autoflex;
-ALTER DATABASE autoflex OWNER TO autoflex;
-```
-
-### 3. Execute o Backend
-
-```bash
-cd autoflex-backend
-
-# Compilar
-./mvnw clean install -DskipTests
-
-# Executar
-./mvnw spring-boot:run
-
-# Backend rodará em http://localhost:8080
-# Swagger UI: http://localhost:8080/swagger-ui.html
-```
-
-### 4. Execute o Frontend
-
-```bash
-cd autoflex-frontend
-
-# Instalar dependências
-npm install
-
-# Executar
-npm run dev
-
-# Frontend rodará em http://localhost:5173
-```
-
----
-
-## 📚 Documentação da API
-
-### Endpoints Principais
-
-**Base URL (Produção):** `https://autoflex-inventory-system-production.up.railway.app/api`  
-**Base URL (Local):** `http://localhost:8080/api`
-
-#### Products
-
-```
-GET    /products              - Listar todos os produtos
-GET    /products/{id}         - Buscar produto por ID
-POST   /products              - Criar novo produto
-PUT    /products/{id}         - Atualizar produto
-DELETE /products/{id}         - Deletar produto
-```
-
-#### Raw Materials
-
-```
-GET    /raw-materials         - Listar todas as matérias-primas
-GET    /raw-materials/{id}    - Buscar matéria-prima por ID
-POST   /raw-materials         - Criar nova matéria-prima
-PUT    /raw-materials/{id}    - Atualizar matéria-prima
-DELETE /raw-materials/{id}    - Deletar matéria-prima
-```
-
-#### Product-Raw Materials (Associations)
-
-```
-GET    /product-raw-materials/product/{id}  - Listar materiais de um produto
-POST   /product-raw-materials               - Associar material a produto
-PUT    /product-raw-materials/{id}          - Atualizar associação
-DELETE /product-raw-materials/product/{productId}/material/{materialId} - Remover associação
-```
-
-#### Production Suggestions
-
-```
-GET    /production/suggestions - Calcular sugestões de produção
-```
-
-**Documentação Interativa:** [Swagger UI](https://autoflex-inventory-system-production.up.railway.app/swagger-ui.html)
-
----
-
-## 🗂️ Estrutura do Projeto
-
-```
-autoflex-inventory-system/
-├── autoflex-backend/
-│   ├── src/
-│   │   ├── main/
-│   │   │   ├── java/com/autoflex/inventory/
-│   │   │   │   ├── config/          # Configurações (CORS, Swagger)
-│   │   │   │   ├── controller/      # Controllers REST
-│   │   │   │   ├── dto/             # Data Transfer Objects
-│   │   │   │   ├── entity/          # Entidades JPA
-│   │   │   │   ├── exception/       # Exception Handlers
-│   │   │   │   ├── repository/      # Repositories
-│   │   │   │   └── service/         # Lógica de negócio + Algoritmo
-│   │   │   └── resources/
-│   │   │       └── application.properties
-│   │   └── test/
-│   └── pom.xml
-│
-├── autoflex-frontend/
-│   ├── src/
-│   │   ├── api/                     # Chamadas API (Axios)
-│   │   ├── components/
-│   │   │   ├── common/              # Componentes reutilizáveis
-│   │   │   └── layout/              # Layout (Header, Sidebar)
-│   │   ├── pages/                   # Páginas (Products, Materials, Production)
-│   │   ├── store/                   # Redux Store + Slices
-│   │   ├── utils/                   # Formatters e utilitários
-│   │   └── App.jsx
-│   ├── package.json
-│   ├── vite.config.js
-│   └── tailwind.config.js
-│
-└── docs/
-    └── screenshots/                 # Screenshots do sistema
-        ├── dashboard.png
-        ├── products.png
-        ├── raw-materials.png
-        ├── adding-materials.png
-        └── production-suggestion.png
-```
-
----
-
-## 💾 Modelo de Dados
-
-### Tabela: `products`
-
-| Campo      | Tipo          | Descrição                 |
-| ---------- | ------------- | ------------------------- |
-| id         | BIGSERIAL     | Chave primária            |
-| code       | VARCHAR(50)   | Código único do produto   |
-| name       | VARCHAR(200)  | Nome do produto           |
-| value      | NUMERIC(10,2) | Valor unitário do produto |
-| created_at | TIMESTAMP     | Data de criação           |
-| updated_at | TIMESTAMP     | Data de atualização       |
-
-### Tabela: `raw_materials`
-
-| Campo             | Tipo              | Descrição                      |
-| ----------------- | ----------------- | ------------------------------ |
-| id                | BIGSERIAL         | Chave primária                 |
-| code              | VARCHAR(50)       | Código único do material       |
-| name              | VARCHAR(200)      | Nome do material               |
-| stock_quantity    | NUMERIC(10,3)     | Quantidade em estoque          |
-| **minimum_stock** | **NUMERIC(10,2)** | **Estoque mínimo (alerta)** ⭐ |
-| **unit_cost**     | **NUMERIC(10,2)** | **Custo unitário** ⭐          |
-| unit              | VARCHAR(20)       | Unidade de medida              |
-| created_at        | TIMESTAMP         | Data de criação                |
-| updated_at        | TIMESTAMP         | Data de atualização            |
-
-### Tabela: `product_raw_materials`
-
-| Campo             | Tipo          | Descrição                         |
-| ----------------- | ------------- | --------------------------------- |
-| id                | BIGSERIAL     | Chave primária                    |
-| product_id        | BIGINT        | FK para products                  |
-| raw_material_id   | BIGINT        | FK para raw_materials             |
-| required_quantity | NUMERIC(10,3) | Quantidade necessária por unidade |
-
-**Constraints:**
-
-- UNIQUE (product_id, raw_material_id)
-- ON DELETE CASCADE
+**Gerenciamento de estado com Redux Toolkit**
+Slices separados para produtos, matérias-primas e sugestões de produção. Actions assíncronas com `createAsyncThunk`. Estado de loading e erro tratados globalmente.
 
 ---
 
 ## 🎯 Algoritmo de Sugestão de Produção
 
-O sistema implementa um algoritmo inteligente que:
+O `ProductionSuggestionService` implementa o algoritmo em método privado `calculateMaxQuantity`:
 
-1. **Busca todos os produtos** ordenados por valor (maior primeiro)
-2. **Para cada produto**, calcula a quantidade máxima produzível baseada em:
-   - Quantidade disponível de cada matéria-prima
-   - Quantidade necessária por unidade de produto
-3. **Determina o limitante**: A matéria-prima que permite produzir menos unidades
-4. **Calcula o valor total** da produção sugerida
-5. **Retorna a lista** ordenada por valor de produção
+```java
+// Para cada matéria-prima do produto:
+int possibleUnits = availableStock
+    .divide(requiredPerUnit, 0, RoundingMode.DOWN) // conservador: arredonda pra baixo
+    .intValue();
 
-**Complexidade:** O(n × m) onde n = número de produtos, m = matérias-primas por produto
+maxQuantity = Math.min(maxQuantity, possibleUnits); // acumula o limitante
+```
 
-**Exemplo:**
+Materiais com `stockQuantity == 0` são capturados em `missingMaterials` e não interrompem o cálculo dos demais. A resposta inclui `remainingStock` por material (quanto sobra após produção), `totalRequired` (quantidade total consumida) e `sufficient` — o frontend recebe tudo calculado, sem lógica no cliente.
+
+**Exemplo real com resposta completa:**
 
 ```
-Produto: Cadeira (Valor: R$ 150,00)
-Matérias-primas necessárias:
-- Madeira: 2.5 KG por unidade | 100 KG em estoque → 40 unidades possíveis
-- Parafuso: 8 UN por unidade | 200 UN em estoque → 25 unidades possíveis
-- Verniz: 0.3 L por unidade | 5 L em estoque → 16 unidades possíveis
+Produto: Cadeira de Madeira  |  Valor: R$ 150,00
 
-Quantidade máxima produzível = MIN(40, 25, 16) = 16 unidades
-Valor total da produção = 16 × R$ 150,00 = R$ 2.400,00
-Material limitante: Verniz (estoque baixo)
+Material   | Estoque  | Necessário/un | Possível  | Total usado | Restante
+-----------+----------+---------------+-----------+-------------+---------
+Madeira    | 100 KG   | 2,5 KG        | 40 un     | 40,0 KG     | 60,0 KG
+Parafuso   | 200 UN   | 8 UN          | 25 un     | 128 UN      | 72 UN
+Verniz     | 5 L      | 0,3 L         | 16 un ← LIMITANTE | 4,8 L | 0,2 L
+
+maxQuantity = MIN(40, 25, 16) = 16 unidades
+totalValue  = 16 × R$ 150,00 = R$ 2.400,00
+```
+
+A resposta do endpoint `/production/suggestions` também inclui totalizadores globais: `totalProductionValue`, `totalUnits`, `totalProductTypes` e `warnings` (ex: produtos sem matérias-primas configuradas).
+
+---
+
+## 🗄️ Modelo de Dados
+
+```
+products
+  id · code (UNIQUE) · name · value · created_at · updated_at
+
+raw_materials
+  id · code (UNIQUE) · name · stock_quantity · minimum_stock
+  unit_cost · unit · created_at · updated_at
+
+product_raw_materials
+  id · product_id (FK) · raw_material_id (FK) · required_quantity
+  UNIQUE(product_id, raw_material_id) · ON DELETE CASCADE
 ```
 
 ---
 
-## 🧪 Testes
+## ✨ Funcionalidades
 
-### Backend
+**Backend — API REST**
+
+- CRUD completo de Produtos e Matérias-Primas
+- Associação Produto ↔ Matéria-Prima com quantidade necessária por unidade
+- Controle de estoque com alertas de estoque mínimo configurável
+- Registro de custo unitário por material
+- Endpoint de sugestão de produção com algoritmo de priorização por valor
+- Documentação Swagger/OpenAPI 3 interativa
+- Tratamento global de exceções com `@ControllerAdvice`
+- CORS configurado para produção
+
+**Frontend — React SPA**
+
+- Dashboard com estatísticas em tempo real
+- CRUD de produtos e matérias-primas com validação client-side
+- Interface dedicada para associar matérias-primas a cada produto
+- Página de sugestão de produção com cards detalhados por produto
+- Badges visuais de status de estoque (normal / atenção / crítico)
+- Gerenciamento de estado com Redux Toolkit
+- Notificações toast para feedback de ações
+- Design responsivo com Tailwind CSS
+
+---
+
+## 🔌 Endpoints da API
+
+```
+Base URL produção: https://autoflex-inventory-system-production.up.railway.app/api
+
+# Produtos
+GET    /products              Lista todos os produtos
+GET    /products/{id}         Busca produto por ID
+POST   /products              Cria novo produto
+PUT    /products/{id}         Atualiza produto
+DELETE /products/{id}         Remove produto
+
+# Matérias-Primas
+GET    /raw-materials          Lista todas as matérias-primas
+GET    /raw-materials/{id}     Busca por ID
+POST   /raw-materials          Cria nova matéria-prima
+PUT    /raw-materials/{id}     Atualiza matéria-prima
+DELETE /raw-materials/{id}     Remove matéria-prima
+
+# Associações Produto ↔ Material
+GET    /product-raw-materials/product/{id}                       Lista materiais de um produto
+POST   /product-raw-materials                                    Associa material a produto
+PUT    /product-raw-materials/{id}                               Atualiza quantidade necessária
+DELETE /product-raw-materials/product/{pId}/material/{mId}       Remove associação
+
+# Produção
+GET    /production/suggestions   Calcula e retorna sugestões de produção ordenadas por valor
+```
+
+Documentação interativa completa: **[Swagger UI](https://autoflex-inventory-system-production.up.railway.app/swagger-ui.html)**
+
+---
+
+## 📁 Estrutura do Projeto
+
+```
+autoflex-inventory-system/
+├── autoflex-backend/
+│   └── src/main/java/com/autoflex/inventory/
+│       ├── config/          # CORS, Swagger/OpenAPI
+│       ├── controller/      # ProductController, RawMaterialController,
+│       │                    # ProductRawMaterialController, ProductionController
+│       ├── dto/             # Request/Response DTOs (separados das entidades)
+│       ├── entity/          # Product, RawMaterial, ProductRawMaterial (JPA)
+│       ├── exception/       # GlobalExceptionHandler (@ControllerAdvice)
+│       ├── repository/      # Spring Data JPA Repositories
+│       └── service/         # Lógica de negócio + Algoritmo de produção
+│
+└── autoflex-frontend/
+    └── src/
+        ├── api/             # Clientes Axios por recurso
+        ├── components/
+        │   ├── common/      # Componentes reutilizáveis (badges, modais, tabelas)
+        │   └── layout/      # Header, Sidebar
+        ├── pages/           # Dashboard, Products, RawMaterials, Production
+        ├── store/           # Redux Store + Slices (products, materials, production)
+        └── utils/           # Formatters (moeda, data, unidade)
+```
+
+---
+
+## 🚀 Como Rodar Localmente
+
+**Pré-requisitos:** Java 17+, Node.js 18+, PostgreSQL, Maven 3.8+
 
 ```bash
+# 1. Clone
+git clone https://github.com/DiegoRapichan/autoflex-inventory-system.git
+cd autoflex-inventory-system
+
+# 2. Banco de dados
+psql -U postgres -c "CREATE DATABASE autoflex;"
+
+# 3. Backend
 cd autoflex-backend
-./mvnw test
-```
+# Configure src/main/resources/application.properties:
+# spring.datasource.url=jdbc:postgresql://localhost:5432/autoflex
+# spring.datasource.username=seu_usuario
+# spring.datasource.password=sua_senha
 
-### Frontend
+./mvnw spring-boot:run
+# API em http://localhost:8080
+# Swagger em http://localhost:8080/swagger-ui.html
 
-```bash
-cd autoflex-frontend
-npm run test
+# 4. Frontend (novo terminal)
+cd ../autoflex-frontend
+npm install
+# Configure .env:
+# VITE_API_URL=http://localhost:8080/api
+npm run dev
+# App em http://localhost:5173
 ```
 
 ---
 
-## 📋 Checklist de Requisitos
+## 🌐 Deploy
 
-### Requisitos Não Funcionais
-
-- [x] RNF001 - Plataforma WEB (Chrome, Firefox, Edge)
-- [x] RNF002 - API separada do front-end
-- [x] RNF003 - Responsividade
-- [x] RNF004 - PostgreSQL
-- [x] RNF005 - Framework backend (Spring Boot)
-- [x] RNF006 - React + Redux
-- [x] RNF007 - Código em inglês
-
-### Requisitos Funcionais
-
-- [x] RF001 - CRUD Produtos (Backend)
-- [x] RF002 - CRUD Matérias-Primas (Backend)
-- [x] RF003 - CRUD Associações (Backend)
-- [x] RF004 - Consulta de Produção (Backend)
-- [x] RF005 - Interface CRUD Produtos
-- [x] RF006 - Interface CRUD Matérias-Primas
-- [x] RF007 - Interface Associações (Página dedicada)
-- [x] RF008 - Interface Sugestão de Produção
-
-### Extras Implementados
-
-- [x] **Alerta de estoque mínimo** (minimum_stock)
-- [x] **Controle de custo unitário** (unit_cost)
-- [x] **Interface de gerenciamento de materiais** por produto
-- [x] **Design moderno** com gradientes e animações
-- [x] **Badges coloridos** para status de estoque
-- [x] **Deploy em produção** (Railway + Vercel)
-- [x] **Documentação Swagger** completa
-- [x] Testes unitários Backend
-- [x] Testes unitários Frontend
-
----
-
-## 🚀 Deploy
-
-### Backend (Railway)
-
-```bash
-# Railway detecta automaticamente o projeto Java
-# Configure as variáveis de ambiente:
-DATABASE_URL=<postgresql-url>
-SPRING_PROFILES_ACTIVE=prod
-```
-
-### Frontend (Vercel)
-
-```bash
-# Vercel detecta automaticamente o projeto Vite
-# Configure as variáveis de ambiente:
-VITE_API_URL=https://autoflex-inventory-system-production.up.railway.app/api
-```
+| Serviço        | URL                                                                         |
+| -------------- | --------------------------------------------------------------------------- |
+| Frontend       | https://autoflex-inventory-system.vercel.app                                |
+| Backend API    | https://autoflex-inventory-system-production.up.railway.app/api             |
+| Swagger UI     | https://autoflex-inventory-system-production.up.railway.app/swagger-ui.html |
+| Banco de dados | PostgreSQL via Railway                                                      |
 
 ---
 
 ## 👨‍💻 Autor
 
-**Diego Rapichan**
+**Diego Rapichan** — Desenvolvedor Full Stack · Java/Spring Boot + Node.js + React
 
-- GitHub: [@DiegoRapichan](https://github.com/DiegoRapichan)
-- LinkedIn: [Diego Rapichan](https://linkedin.com/in/diego-rapichan)
-- Email: direrapichan@gmail.com
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-diego--rapichan-0077B5?style=flat&logo=linkedin)](https://linkedin.com/in/diego-rapichan)
+[![GitHub](https://img.shields.io/badge/GitHub-DiegoRapichan-181717?style=flat&logo=github)](https://github.com/DiegoRapichan)
 
----
-
-## 📝 Licença
-
-Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
+📍 Apucarana, Paraná — Brasil
 
 ---
 
-## 🙏 Agradecimentos
-
-Projeto desenvolvido para o teste prático da **Autoflex**. Agradeço pela oportunidade de demonstrar minhas habilidades técnicas em desenvolvimento full-stack.
-
----
-
-<div align="center">
-  
-**⭐ Se este projeto foi útil, considere dar uma estrela!**
-
-Desenvolvido por Diego Rapichan
-
-</div>
+📄 Licença MIT
