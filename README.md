@@ -52,6 +52,19 @@ Slices separados para produtos, matérias-primas e sugestões de produção. Act
 
 ---
 
+## 📸 Screenshots
+
+**Dashboard**
+![Dashboard](docs/screenshots/dashboard.png)
+
+**Sugestão de Produção**
+![Production Suggestion](docs/screenshots/production-suggestion.png)
+
+**Gestão de Matérias-Primas**
+![Raw Materials](docs/screenshots/raw-materials.png)
+
+---
+
 ## 🎯 Algoritmo de Sugestão de Produção
 
 O `ProductionSuggestionService` implementa o algoritmo em método privado `calculateMaxQuantity`:
