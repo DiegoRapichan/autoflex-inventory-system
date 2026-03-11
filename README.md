@@ -1,4 +1,4 @@
-# Autoflex Inventory System
+# Autoflex Inventory System 
 
 > Sistema full stack de gestão de estoque e sugestão inteligente de produção — calcula automaticamente quais produtos fabricar com base no estoque disponível de matérias-primas, priorizando os de maior valor agregado.
 
