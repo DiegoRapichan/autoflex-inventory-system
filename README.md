@@ -19,7 +19,7 @@
 | ---------------- | ------------------------------------------------------------------------------------- |
 | **Backend**      | Java 17 · Spring Boot 3.2 · Spring Data JPA · Hibernate · PostgreSQL · Lombok · Maven |
 | **Documentação** | Swagger / OpenAPI 3                                                                   |
-| **Frontend**     | React 18 · Redux Toolkit · React Router 6 · Axios · Tailwind CSS · Vite               |
+| **Frontend**     | React 18 · Redux Toolkit · React Router 6 · Axios · Tailwind CSS · Vite               | 
 | **Deploy**       | Railway (backend + PostgreSQL) · Vercel (frontend)                                    |
 
 ---
